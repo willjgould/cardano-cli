@@ -29,18 +29,32 @@ toTxOutInAnyEra
   :: ShelleyBasedEra era
   -> TxOutAnyEra
   -> CIO e (Exp.TxOut (ShelleyLedgerEra era), Map DataHash (L.Data (ShelleyLedgerEra era)))
-toTxOutInAnyEra era (TxOutAnyEra addr' val' mDatumHash refScriptFp) = do
+toTxOutInAnyEra era (TxOutAnyEra kind addr' val' mDatumHash refScriptFp) = do
   let addr = anyAddressInShelleyBasedEra era addr'
-  mkTxOut era addr val' mDatumHash refScriptFp
+  mkTxOut era kind addr val' mDatumHash refScriptFp
 
 mkTxOut
   :: ShelleyBasedEra era
+  -> TxOutDepositKind
   -> AddressInEra era
   -> Value
   -> TxOutDatumAnyEra
   -> ReferenceScriptAnyEra
   -> CIO e (Exp.TxOut (ShelleyLedgerEra era), Map DataHash (L.Data (ShelleyLedgerEra era)))
-mkTxOut sbe addr val' mDatumAnyEra refScriptFp = do
+mkTxOut sbe TxOutStoreBackedDeposit addr value datum refScriptFp = case sbe of
+  ShelleyBasedEraDijkstra -> do
+    (dat, suppl) <- babbageDatumFields datum
+    refScript <- readRefScript sbe refScriptFp
+    pure
+      ( Exp.TxOut
+          ( L.mkBasicTxOutWithStoreBackedDeposit (toShelleyAddr addr) (L.ApplicationAssets (toMaryValue value))
+              & L.datumTxOutL .~ dat
+              & L.referenceScriptTxOutL .~ refScript
+          )
+      , suppl
+      )
+  _ -> txFeatureMismatch sbe TxFeatureStoreBackedOutputs
+mkTxOut sbe TxOutImplicitDeposit addr val' mDatumAnyEra refScriptFp = do
   txVal <- toTxOutValueInShelleyBasedEra sbe val'
   let ledgerAddr = toShelleyAddr addr
   shelleyBasedEraConstraints sbe $
@@ -164,12 +178,14 @@ toTxOutValueInShelleyBasedEra sbe val =
 data TxFeature
   = TxFeatureMultiAssetOutputs
   | TxFeatureInlineDatums
+  | TxFeatureStoreBackedOutputs
   deriving Show
 
 renderFeature :: TxFeature -> Text
 renderFeature = \case
   TxFeatureMultiAssetOutputs -> "Multi-Asset outputs"
   TxFeatureInlineDatums -> "Inline datums"
+  TxFeatureStoreBackedOutputs -> "Store-backed outputs"
 
 data TxCmdTxFeatureMismatch = TxCmdTxFeatureMismatch !AnyCardanoEra !TxFeature deriving Show
 

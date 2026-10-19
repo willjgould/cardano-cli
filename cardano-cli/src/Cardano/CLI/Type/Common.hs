@@ -88,6 +88,7 @@ module Cardano.CLI.Type.Common
   , TxOutChangeAddress (..)
   , TxOutCount (..)
   , TxOutDatumAnyEra (..)
+  , TxOutDepositKind (..)
   , TxShelleyWitnessCount (..)
   , UpdateProposalFile (..)
   , ValidateRelays (..)
@@ -446,12 +447,17 @@ data TxOutShelleyBasedEra
       ReferenceScriptAnyEra
   deriving Show
 
+-- | How a requested output accounts for its UTxO backing.
+data TxOutDepositKind = TxOutImplicitDeposit | TxOutStoreBackedDeposit
+  deriving (Eq, Show)
+
 -- | A TxOut value that is the superset of possibilities for any era: any
 -- address type and allowing multi-asset values. This is used as the type for
 -- values passed on the command line. It can be converted into the
 -- era-dependent 'TxOutValue' type.
 data TxOutAnyEra
   = TxOutAnyEra
+      TxOutDepositKind
       AddressAny
       Value
       TxOutDatumAnyEra

@@ -43,7 +43,10 @@ Usage: cardano-cli dijkstra transaction build
                                                 [--tx-in-collateral TX_IN]
                                                 [--tx-out-return-collateral ADDRESS VALUE]
                                                 [--tx-total-collateral INTEGER]
-                                                [--tx-out ADDRESS VALUE
+                                                [
+                                                  ( --tx-out ADDRESS VALUE
+                                                  | --tx-out-store-backed ADDRESS VALUE
+                                                  )
                                                   [ --tx-out-datum-hash HASH
                                                   | --tx-out-datum-hash-cbor-file CBOR_FILE
                                                   | --tx-out-datum-hash-file JSON_FILE
@@ -257,6 +260,11 @@ Available options:
                            is the Bech32-encoded address followed by the value
                            in the multi-asset syntax (including simply
                            Lovelace).
+  --tx-out-store-backed ADDRESS VALUE
+                           Dijkstra store-backed output as ADDRESS VALUE. VALUE
+                           contains application assets only; backing is
+                           accounted for by the transaction's UTxO deposit
+                           declaration.
   --tx-out-datum-hash HASH The script datum hash for this tx output, as the raw
                            datum hash (in hex).
   --tx-out-datum-hash-cbor-file CBOR_FILE

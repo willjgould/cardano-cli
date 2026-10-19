@@ -2101,16 +2101,25 @@ pTotalUTxOValue =
 
 pTxOut :: Parser TxOutAnyEra
 pTxOut =
-  Opt.option
-    (readerFromParsecParser parseTxOutAnyEra)
-    ( Opt.long "tx-out"
-        <> Opt.metavar "ADDRESS VALUE"
-        -- TODO alonzo: Update the help text to describe the new syntax as well.
-        <> Opt.help
-          "The transaction output as ADDRESS VALUE where ADDRESS is \
-          \the Bech32-encoded address followed by the value in \
-          \the multi-asset syntax (including simply Lovelace)."
-    )
+  ( Opt.option
+      (readerFromParsecParser parseTxOutAnyEra)
+      ( Opt.long "tx-out"
+          <> Opt.metavar "ADDRESS VALUE"
+          -- TODO alonzo: Update the help text to describe the new syntax as well.
+          <> Opt.help
+            "The transaction output as ADDRESS VALUE where ADDRESS is \
+            \the Bech32-encoded address followed by the value in \
+            \the multi-asset syntax (including simply Lovelace)."
+      )
+      <|> Opt.option
+        (readerFromParsecParser (parseTxOutAnyEraWithDepositKind TxOutStoreBackedDeposit))
+        ( Opt.long "tx-out-store-backed"
+            <> Opt.metavar "ADDRESS VALUE"
+            <> Opt.help
+              "Dijkstra store-backed output as ADDRESS VALUE. VALUE contains application \
+              \assets only; backing is accounted for by the transaction's UTxO deposit declaration."
+        )
+  )
     <*> pTxOutDatum
     <*> pRefScriptFp
 
@@ -3295,14 +3304,19 @@ parseTxOutShelleyBasedEra = do
 
 parseTxOutAnyEra
   :: P.Parser (TxOutDatumAnyEra -> ReferenceScriptAnyEra -> TxOutAnyEra)
-parseTxOutAnyEra = do
+parseTxOutAnyEra = parseTxOutAnyEraWithDepositKind TxOutImplicitDeposit
+
+parseTxOutAnyEraWithDepositKind
+  :: TxOutDepositKind
+  -> P.Parser (TxOutDatumAnyEra -> ReferenceScriptAnyEra -> TxOutAnyEra)
+parseTxOutAnyEraWithDepositKind kind = do
   addr <- parseAddressAny
   P.spaces
   -- Accept the old style of separating the address and value in a
   -- transaction output:
   P.option () (P.char '+' >> P.spaces)
   val <- parseTxOutMultiAssetValue
-  return (TxOutAnyEra addr val)
+  return (TxOutAnyEra kind addr val)
 
 --------------------------------------------------------------------------------
 

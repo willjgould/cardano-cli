@@ -374,11 +374,11 @@ toTxOutInEra
    . Exp.IsEra era
   => TxOutAnyEra
   -> CIO e (Exp.TxOut (Exp.LedgerEra era), Map.Map DataHash (L.Data (Exp.LedgerEra era)))
-toTxOutInEra (TxOutAnyEra addr' val' mDatumHash refScriptFp) = do
+toTxOutInEra (TxOutAnyEra kind addr' val' mDatumHash refScriptFp) = do
   let sbe = convert (Exp.useEra @era)
       addr = anyAddressInShelleyBasedEra sbe addr'
   obtainCommonConstraints (Exp.useEra @era) $
-    mkTxOut sbe addr val' mDatumHash refScriptFp
+    mkTxOut sbe kind addr val' mDatumHash refScriptFp
 
 runTransactionBuildEstimateCmd
   :: forall era e
@@ -1190,7 +1190,7 @@ toTxOutInShelleyBasedEra (TxOutShelleyBasedEra addr' val' mDatumHash refScriptFp
   let sbe = convert (Exp.useEra @era)
       addr = shelleyAddressInEra sbe addr'
   obtainCommonConstraints (Exp.useEra @era) $
-    mkTxOut sbe addr val' mDatumHash refScriptFp
+    mkTxOut sbe TxOutImplicitDeposit addr val' mDatumHash refScriptFp
 
 -- TODO: Currently we specify the policyId with the '--mint' option on the cli
 -- and we added a separate '--policy-id' parser that parses the policy id for the
