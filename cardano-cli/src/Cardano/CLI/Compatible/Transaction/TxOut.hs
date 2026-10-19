@@ -47,13 +47,13 @@ mkTxOut sbe addr val' mDatumAnyEra refScriptFp = do
     case txVal of
       TxOutValueShelleyBased _ ledgerVal ->
         case sbe of
-          ShelleyBasedEraShelley -> pure (Exp.TxOut (L.mkBasicTxOut ledgerAddr ledgerVal), mempty)
-          ShelleyBasedEraAllegra -> pure (Exp.TxOut (L.mkBasicTxOut ledgerAddr ledgerVal), mempty)
-          ShelleyBasedEraMary -> pure (Exp.TxOut (L.mkBasicTxOut ledgerAddr ledgerVal), mempty)
+          ShelleyBasedEraShelley -> pure (Exp.TxOut (L.mkBasicTxOutWithImplicitDeposit ledgerAddr ledgerVal), mempty)
+          ShelleyBasedEraAllegra -> pure (Exp.TxOut (L.mkBasicTxOutWithImplicitDeposit ledgerAddr ledgerVal), mempty)
+          ShelleyBasedEraMary -> pure (Exp.TxOut (L.mkBasicTxOutWithImplicitDeposit ledgerAddr ledgerVal), mempty)
           ShelleyBasedEraAlonzo -> do
             (mDH, suppl) <- alonzoDatumFields mDatumAnyEra
             pure
-              ( Exp.TxOut (L.mkBasicTxOut ledgerAddr ledgerVal & L.dataHashTxOutL .~ mDH)
+              ( Exp.TxOut (L.mkBasicTxOutWithImplicitDeposit ledgerAddr ledgerVal & L.dataHashTxOutL .~ mDH)
               , suppl
               )
           ShelleyBasedEraBabbage -> do
@@ -61,7 +61,7 @@ mkTxOut sbe addr val' mDatumAnyEra refScriptFp = do
             refScript <- readRefScript sbe refScriptFp
             pure
               ( Exp.TxOut
-                  ( L.mkBasicTxOut ledgerAddr ledgerVal
+                  ( L.mkBasicTxOutWithImplicitDeposit ledgerAddr ledgerVal
                       & L.datumTxOutL .~ dat
                       & L.referenceScriptTxOutL .~ refScript
                   )
@@ -72,7 +72,7 @@ mkTxOut sbe addr val' mDatumAnyEra refScriptFp = do
             refScript <- readRefScript sbe refScriptFp
             pure
               ( Exp.TxOut
-                  ( L.mkBasicTxOut ledgerAddr ledgerVal
+                  ( L.mkBasicTxOutWithImplicitDeposit ledgerAddr ledgerVal
                       & L.datumTxOutL .~ dat
                       & L.referenceScriptTxOutL .~ refScript
                   )
@@ -83,12 +83,17 @@ mkTxOut sbe addr val' mDatumAnyEra refScriptFp = do
             refScript <- readRefScript sbe refScriptFp
             pure
               ( Exp.TxOut
-                  ( L.mkBasicTxOut ledgerAddr ledgerVal
+                  ( L.mkBasicTxOutWithImplicitDeposit ledgerAddr ledgerVal
                       & L.datumTxOutL .~ dat
                       & L.referenceScriptTxOutL .~ refScript
                   )
               , suppl
               )
+
+      -- The value parser above currently creates implicit-deposit outputs only.
+      TxOutValueStoreBacked{} ->
+        throwCliError
+          ("Store-backed output construction is not supported by this CLI command." :: String)
 
 alonzoDatumFields
   :: L.Era ledgerera

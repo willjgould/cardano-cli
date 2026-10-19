@@ -1255,8 +1255,13 @@ utxoToText sbe (TxIn (TxId txhash) (TxIx index), Exp.TxOut ledgerTxOut) =
      in Text.pack $ replicate (max 1 (len - slen)) ' ' ++ str
 
   printableValue :: Text
-  printableValue =
-    renderValue $ Api.fromLedgerValue sbe (ledgerTxOut ^. L.valueTxOutL)
+  printableValue = shelleyBasedEraConstraints sbe $
+    case ledgerTxOut of
+      L.ImplicitDepositTxOut output ->
+        renderValue $ Api.fromLedgerValue sbe (output ^. L.valueTxOutL)
+      L.StoreBackedTxOut output ->
+        renderValue (Api.fromLedgerValue sbe (L.unApplicationAssets $ output ^. L.applicationAssetsTxOutL))
+          <> " (store-backed)"
 
   -- Debug-style datum rendering. Eras before Alonzo have no datums, so
   -- nothing is printed after the value for their outputs. Alonzo era

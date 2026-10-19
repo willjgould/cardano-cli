@@ -507,7 +507,13 @@ friendlyTxOut era (Exp.TxOut ledgerTxOut) =
   Exp.obtainCommonConstraints era $
     babbageEraOnwardsConstraints beo $
       let addr = fromShelleyAddr sbe (ledgerTxOut ^. L.addrTxOutL)
-          ledgerValue = ledgerTxOut ^. L.valueTxOutL
+          valueField :: Aeson.Pair
+          valueField = case ledgerTxOut of
+            L.ImplicitDepositTxOut output ->
+              "amount" .= friendlyLedgerValue era (output ^. L.valueTxOutL)
+            L.StoreBackedTxOut output ->
+              "application assets"
+                .= friendlyLedgerValue era (L.unApplicationAssets $ output ^. L.applicationAssetsTxOutL)
           refScript = case ledgerTxOut ^. L.referenceScriptTxOutL of
             L.SNothing -> ReferenceScriptNone
             L.SJust s -> fromShelleyScriptToReferenceScript sbe s
@@ -516,14 +522,14 @@ friendlyTxOut era (Exp.TxOut ledgerTxOut) =
               AddressInEra ByronAddressInAnyEra byronAdr ->
                 [ "address era" .= String "Byron"
                 , "address" .= serialiseAddress byronAdr
-                , "amount" .= friendlyLedgerValue era ledgerValue
+                , valueField
                 ]
               AddressInEra (ShelleyAddressInEra _) saddr@(ShelleyAddress net cred stake) ->
                 friendlyPaymentCredential (fromShelleyPaymentCredential cred)
                   : [ "address era" .= Aeson.String "Shelley"
                     , "network" .= net
                     , "address" .= serialiseAddress saddr
-                    , "amount" .= friendlyLedgerValue era ledgerValue
+                    , valueField
                     , "stake reference"
                         .= friendlyStakeReference (fromShelleyStakeReference stake)
                     , "datum" .= case ledgerTxOut ^. L.datumTxOutL of
